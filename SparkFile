@@ -1,0 +1,435 @@
+scala> val rdd = sc.textFile("/labdata/sheakspear.txt")
+
+rdd: org.apache.spark.rdd.RDD[String] = /labdata/sheakspear.txt MapPartitionsRDD[159] at textFile at <console>:43
+
+scala> rdd.take(10).foreach(println) 
+
+This is the 100th Etext file presented by Project Gutenberg, and                
+is presented in cooperation with World Library, Inc., from their
+Library of the Future and Shakespeare CDROMS.  Project Gutenberg
+often releases Etexts that are NOT placed in the Public Domain!!
+
+Shakespeare
+
+*This Etext has certain copyright implications you should read!*
+
+<<THIS ELECTRONIC VERSION OF THE COMPLETE WORKS OF WILLIAM
+
+
+
+
+2)
+
+scala> val rdd1 = rdd.flatMap(line => line.split(" "))
+
+rdd1: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[160] at flatMap at <console>:44
+
+scala> rdd1.take(10).foreach(println) 
+
+This                                                                            
+is
+the
+100th
+Etext
+file
+presented
+by
+Project
+Gutenberg,
+
+
+
+3)
+
+
+scala> val rdd2 = rdd.zipWithIndex().map{case (line, index) => (index, line)}
+
+rdd2: org.apache.spark.rdd.RDD[(Long, String)] = MapPartitionsRDD[162] at map at <console>:44
+
+
+scala> rdd2.take(10).foreach(println) 
+
+(0,This is the 100th Etext file presented by Project Gutenberg, and)            
+(1,is presented in cooperation with World Library, Inc., from their)
+(2,Library of the Future and Shakespeare CDROMS.  Project Gutenberg)
+(3,often releases Etexts that are NOT placed in the Public Domain!!)
+(4,)
+(5,Shakespeare)
+(6,)
+(7,*This Etext has certain copyright implications you should read!*)
+(8,)
+(9,<<THIS ELECTRONIC VERSION OF THE COMPLETE WORKS OF WILLIAM)
+
+
+
+4)
+
+scala> val rdd3 = rdd.zipWithIndex().map{case (line, index) => (index, line.split(" "))}
+
+rdd3: org.apache.spark.rdd.RDD[(Long, Array[String])] = MapPartitionsRDD[164] at map at <console>:44
+
+scala> rdd3.take(10).foreach(println) 
+
+(0,[Ljava.lang.String;@aef1e34)                                                 
+(1,[Ljava.lang.String;@5d30ce0)
+(2,[Ljava.lang.String;@4cae100b)
+(3,[Ljava.lang.String;@d194b51)
+(4,[Ljava.lang.String;@7f75fa78)
+(5,[Ljava.lang.String;@62dc5d7a)
+(6,[Ljava.lang.String;@5ece2762)
+(7,[Ljava.lang.String;@19cabc29)
+(8,[Ljava.lang.String;@493c3352)
+(9,[Ljava.lang.String;@490b9082)
+
+
+5)
+
+scala> val rdd4 = rdd.zipWithIndex().flatMap{ case (line, index) => val words = line.split(" ") words.map(word => ((index, word), 1)) }.reduceByKey(_ + _)
+
+rdd4: org.apache.spark.rdd.RDD[((Long, String), Int)] = ShuffledRDD[167] at reduceByKey at <console>:48
+
+
+scala> rdd4.take(10).foreach(println) 
+
+[Stage 55:>                 (0 + 1) / 1][Stage 79:>                 (0 + 1) / 1]23/01/11 21:19:08 WARN Executor: Managed memory leak detected; size = 79497158 bytes, TID = 97
+((94810,QUEEN),1)                                                               
+((108197,And),1)
+((7604,Pompey,),1)
+((45119,Some),1)
+((15679,deserves),1)
+((109365,did),1)
+((273,),2)
+((70431,),2)
+((41438,enemy.),1)
+((92736,man),1)
+
+
+
+6)
+
+scala> val rdd5 = rdd4.map{case ((index, word), freq) => (word, (index, freq))}
+
+rdd5: org.apache.spark.rdd.RDD[(String, (Long, Int))] = MapPartitionsRDD[168] at map at <console>:44
+
+scala> rdd5.take(10).foreach(println) 
+
+[Stage 55:>                 (0 + 1) / 1][Stage 81:>                 (0 + 1) / 1]23/01/11 21:19:33 WARN Executor: Managed memory leak detected; size = 79497158 bytes, TID = 98
+(QUEEN,(94810,1))                                                               
+(And,(108197,1))
+(Pompey,,(7604,1))
+(Some,(45119,1))
+(deserves,(15679,1))
+(did,(109365,1))
+(,(273,2))
+(,(70431,2))
+(enemy.,(41438,1))
+(man,(92736,1))
+
+[Stage 55:>                                                         (0 + 1) / 1]
+
+
+
+7)
+
+scala> val rdd6 = rdd5.groupByKey().map{case (word, iter) => (word, iter.toList)}
+rdd6: org.apache.spark.rdd.RDD[(String, List[(Long, Int)])] = MapPartitionsRDD[170] at map at <console>:44
+
+scala> 
+
+scala> rdd6.take(10).foreach(println) 
+[Stage 55:>                 (0 + 1) / 1][Stage 84:>                 (0 + 1) / 1]23/01/11 21:20:17 WARN Executor: Managed memory leak detected; size = 9867696 bytes, TID = 101
+(hack'd.,List((69197,1)))                                                       
+(durst,,List((86983,1)))
+(Ah!,List((36902,1), (106147,1), (109609,1)))
+(bone,List((72985,1), (55889,1), (65470,1), (98708,1), (89931,1), (107571,1), (111648,1)))
+(Worthy;,List((66154,1)))
+(vailing,List((65921,1)))
+(bombast,List((66444,1)))
+(person-,List((15884,1)))
+(LAFEU],List((6055,1)))
+(fiction.,List((116844,1)))
+
+[Stage 55:>                                                         (0 + 1) / 1]
+
+
+
+8)
+
+
+scala> val rdd7 = rdd6.map{case (word, list) => (word, list.map(_._1))}
+rdd7: org.apache.spark.rdd.RDD[(String, List[Long])] = MapPartitionsRDD[171] at map at <console>:44
+
+scala> 
+
+scala> rdd7.take(10).foreach(println) 
+
+[Stage 55:>                 (0 + 1) / 1][Stage 87:>                 (0 + 1) / 1]23/01/11 21:20:56 WARN Executor: Managed memory leak detected; size = 9867696 bytes, TID = 102
+(hack'd.,List(69197))                                                           
+(durst,,List(86983))
+(Ah!,List(36902, 106147, 109609))
+(bone,List(72985, 55889, 65470, 98708, 89931, 107571, 111648))
+(Worthy;,List(66154))
+(vailing,List(65921))
+(bombast,List(66444))
+(person-,List(15884))
+(LAFEU],List(6055))
+(fiction.,List(116844))
+
+[Stage 55:>                                                         (0 + 1) / 1]
+
+
+
+9)
+
+
+scala> val rdd8 = rdd5.map{case (word, (index, freq)) => (word, freq)}.reduceByKey(_ + _)
+
+rdd8: org.apache.spark.rdd.RDD[(String, Int)] = ShuffledRDD[173] at reduceByKey at <console>:44
+
+scala> rdd8.take(10).foreach(println) 
+
+(hack'd.,1)                                                                     
+(durst,,1)
+(Ah!,3)
+(Worthy;,1)
+(bone,7)
+(vailing,1)
+(bombast,1)
+(person-,1)
+(LAFEU],1)
+(fiction.,1)
+
+[Stage 55:>                                                         (0 + 1) / 1]
+
+
+
+10)
+
+scala> val rdd9 = rdd4.map{case ((index, word), freq) => ((word, index), freq)}
+
+rdd9: org.apache.spark.rdd.RDD[((String, Long), Int)] = MapPartitionsRDD[174] at map at <console>:44
+
+scala> rdd9.take(10).foreach(println) 
+
+[Stage 55:>                 (0 + 1) / 1][Stage 92:>                 (0 + 1) / 1]23/01/11 21:22:21 WARN Executor: Managed memory leak detected; size = 79497158 bytes, TID = 106
+((QUEEN,94810),1)                                                               
+((And,108197),1)
+((Pompey,,7604),1)
+((Some,45119),1)
+((deserves,15679),1)
+((did,109365),1)
+((,273),2)
+((,70431),2)
+((enemy.,41438),1)
+((man,92736),1)
+
+[Stage 55:>                                                         (0 + 1) / 1]
+
+
+
+11)
+
+scala> val rdd10 = rdd9.countByKey()
+
+[Stage 55:>                                                         (0 + 1) / 1]rdd10: scala.collection.Map[(String, Long),Long] = Map((content.,11199) -> 1, (woes,92856) -> 1, ("",93724) -> 1, ("",65867) -> 1, (Bora.,82769) -> 1, ("",61125) -> 1, (Falstaff.,77441) -> 1, (an,78696) -> 1, (love,92645) -> 1, (anything.,94323) -> 1, (though,51881) -> 1, (fall'n,92055) -> 1, ("",13119) -> 1, (his,110311) -> 1, (rogue,116877) -> 1, (break,4322) -> 1, (Romeo,96768) -> 1, (To,9406) -> 1, (purpos'd,28260) -> 1, (but,12270) -> 1, (her,123978) -> 1, (PANDULPH,,55047) -> 1, (MACBETH.,68507) -> 1, (enemies,55609) -> 1, (out,97774) -> 1, (Titled,5029) -> 1, ([In,17596) -> 1, (of,70964) -> 1, (night,96529) -> 1, ("",28090) -> 1, (himself,39826) -> 1, (hope,45173) -> 1, (it,27420) -> 1, (integrity,112991) -> 1, (is,114922) -> 1, (mark,,81122) -> 1, (have,58554) -> 1, (What,5522) ...
+
+scala> rdd10.take(10).foreach(println) 
+
+((content.,11199),1)
+((woes,92856),1)
+((,93724),1)
+((,65867),1)
+((Bora.,82769),1)
+((,61125),1)
+((Falstaff.,77441),1)
+((an,78696),1)
+((love,92645),1)
+((anything.,94323),1)
+
+
+
+12)
+
+
+scala> val rdd11 = rdd4.map{case ((index, word), freq) => (word, (index, freq))}.reduceByKey((a, b) => (a._1, a._2 + b._2))
+rdd11: org.apache.spark.rdd.RDD[(String, (Long, Int))] = ShuffledRDD[178] at reduceByKey at <console>:44
+
+scala> rdd11.take(10).foreach(println) 
+(hack'd.,(69197,1))                                                             
+(durst,,(86983,1))
+(Ah!,(36902,3))
+(Worthy;,(66154,1))
+(bone,(72985,7))
+(vailing,(65921,1))
+(bombast,(66444,1))
+(person-,(15884,1))
+(LAFEU],(6055,1))
+(fiction.,(116844,1))
+
+[Stage 55:>                                                         (0 + 1) / 1]
+
+
+
+13)
+
+scala> val rdd12 = rdd11.map{case (word, (index, freq)) => (word, (1, freq))}.reduceByKey((a, b) => (a._1 + b._1, a._2 + b._2))
+rdd12: org.apache.spark.rdd.RDD[(String, (Int, Int))] = ShuffledRDD[180] at reduceByKey at <console>:44
+
+scala> rdd12.take(10).foreach(println) 
+(hack'd.,(1,1))                                                                 
+(durst,,(1,1))
+(Ah!,(1,3))
+(Worthy;,(1,1))
+(bone,(1,7))
+(vailing,(1,1))
+(bombast,(1,1))
+(person-,(1,1))
+(LAFEU],(1,1))
+(fiction.,(1,1))
+
+[Stage 55:>                                                         (0 + 1) / 1]
+
+
+
+A)
+
+val rdd = sc.textFile("/labdata/nyctaxisub.txt")
+
+rdd.take(10).foreach(println) 
+
+
+Β)
+
+val Dataset = spark.createDataset(rdd)
+val dataFrame = spark.read.option("header", "true").csv(Dataset)
+
+dataFrame.show()
+
+
+C)
+
+val startDate = "2013-02-09"
+val endDate = "2013-02-11"
+
+val filteredDf = 
+dataFrame
+.filter(col("pickup_datetime")
+.between(startDate, endDate))
+.groupBy("medallion")
+.agg(sum("passenger_count")
+.as("total_passengers"))
+.sort(desc("total_passengers"))
+
+filteredDf.show()
+
++--------------------+----------------+                                         
+|           medallion|total_passengers|
++--------------------+----------------+
+|9DFBCD218E7116F34...|            80.0|
+|B6C81B3930CFA8348...|            65.0|
+|2DD922C87A37C3A35...|            61.0|
+|B3A52AF806864AFC0...|            60.0|
+|B7EF8242FFE3369E4...|            58.0|
+|0E07982309A43DFB4...|            56.0|
+|18A76EEAC215CDDAF...|            55.0|
+|BCF07D2F69DB29C27...|            54.0|
+|9D12D181777ED1A36...|            54.0|
+|E820983BA54169566...|            53.0|
+|2C67FDEE467560DD8...|            50.0|
+|0278B837D850DB620...|            49.0|
+|7AC504272B66F74A3...|            48.0|
+|3111F896B6656FEF8...|            47.0|
+|02977FF6387A1A2C7...|            47.0|
+|AF1C751AC62E231FF...|            46.0|
+|20B235B80E6D5CACB...|            46.0|
+|7CB2729E7F445BEE2...|            45.0|
+|0A415B814A6479EE7...|            45.0|
+|554389035D554151A...|            45.0|
++--------------------+----------------+
+only showing top 20 rows
+
+val topMedallions = filteredDf.select("medallion").limit(10)
+
+topMedallions.show()
+
+D)
+
+val filteredDf2 = 
+dataFrame
+.filter(col("pickup_datetime")
+.between(startDate, endDate))
+.groupBy("medallion")
+.agg(count("medallion")
+.as("medallion_count"))
+
+filteredDf2.show()
+
++--------------------+---------------+                                          
+|           medallion|medallion_count|
++--------------------+---------------+
+|BEA5A07E7B365D7F6...|              2|
+|595917A7813CC80DA...|              3|
+|B59C6B4E3CFAB9EDF...|              3|
+|846DFE2D59F6E76EC...|              6|
+|0F621E366CFE63044...|              6|
+|D72C164FE66ADFFFE...|              3|
+|DAF60A90A00F8FE30...|              2|
+|E7C49B0A85D992BF1...|              2|
+|1109955CCAABCBCE1...|              1|
+|911B6F71706854496...|             10|
+|753BC0484097BB236...|              7|
+|80F732B990A7E3763...|              4|
+|7550D0BD520A691EC...|              7|
+|F9B3A00E6DDCA4F8B...|              2|
+|496036713FC662D71...|              5|
+|A02946A94C960AF04...|              8|
+|BF46B95E44ED3BE1B...|              6|
+|06EAD4C8D98202F1E...|              4|
+|DA350783B6954CC67...|              6|
+|6AFD7E44A278CFD00...|              2|
++--------------------+---------------+
+
+val totalMedallions = filteredDf2.agg(sum("medallion_count")).first.getLong(0)
+
+totalMedallions: Long = 31021  
+
+
+E)
+
+val filteredDf3 = dataFrame
+.filter(col("trip_time_in_secs") > 900)
+.groupBy("medallion")
+.agg(sum("passenger_count")
+.as("total_passengers"))
+.sort(desc("total_passengers"))
+
+filteredDf3.show()
+
++--------------------+----------------+                                         
+|           medallion|total_passengers|
++--------------------+----------------+
+|EF9C8C5CBDC67FFF3...|           156.0|
+|9DFBCD218E7116F34...|           149.0|
+|4BB25E147A0C432D6...|           138.0|
+|CD84F285A569F1710...|           134.0|
+|4528AF6CFC859EBC9...|           132.0|
+|34F7B3077847F28A6...|           128.0|
+|A24852E3C3F4F6B04...|           126.0|
+|5B62D8FBD6D3B5886...|           123.0|
+|A63898970B3AFD16D...|           120.0|
+|D8B129CEEE80E8B84...|           120.0|
+|9962D4F0BEBA24A86...|           119.0|
+|9B4420CBAFD6EFE04...|           117.0|
+|4F7C132D3130970CF...|           115.0|
+|4FD9F16B9D6399396...|           114.0|
+|A32F4B12D699E8423...|           114.0|
+|04C271CE9B4F096FD...|           114.0|
+|C371E40192DC945C0...|           114.0|
+|1259D7BA85B75AF5D...|           114.0|
+|2145E2701968796E8...|           113.0|
+|554389035D554151A...|           111.0|
++--------------------+----------------+
+only showing top 20 rows
+
+
+
